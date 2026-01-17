@@ -1,0 +1,214 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Winner Organa - Premium Design System
+   Aesthetic: Organic Luxury | Earth-Inspired Elegance
+   Typography: Lora (Serif) + Lato (Sans-serif)
+*/
+
+@layer base {
+  :root {
+    /* Core Brand Colors */
+    --background: 40 30% 96%; /* Warm cream */
+    --foreground: 160 25% 18%; /* Deep forest */
+
+    --card: 0 0% 100%;
+    --card-foreground: 160 25% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 25% 18%;
+
+    /* Primary - Deep Forest Green */
+    --primary: 160 25% 22%;
+    --primary-foreground: 40 30% 98%;
+    --primary-hover: 160 25% 18%;
+
+    /* Secondary - Soft Sage */
+    --secondary: 140 15% 90%;
+    --secondary-foreground: 160 25% 22%;
+
+    /* Muted - Warm Stone */
+    --muted: 35 20% 92%;
+    --muted-foreground: 160 15% 40%;
+
+    /* Accent - Rich Gold */
+    --accent: 38 75% 55%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Warm Earth Tone */
+    --warm: 28 60% 55%;
+    --warm-foreground: 0 0% 100%;
+
+    /* Success - Fresh Green */
+    --success: 145 50% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders & Inputs */
+    --border: 35 25% 88%;
+    --input: 35 25% 88%;
+    --ring: 38 75% 55%;
+
+    /* Premium Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(160 25% 22%) 0%, hsl(160 30% 28%) 50%, hsl(38 75% 55%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(38 75% 55%) 0%, hsl(28 60% 55%) 100%);
+    --gradient-forest: linear-gradient(135deg, hsl(160 25% 22%) 0%, hsl(145 50% 35%) 100%);
+    --gradient-cream: linear-gradient(180deg, hsl(40 30% 98%) 0%, hsl(35 25% 94%) 100%);
+    --gradient-warm: linear-gradient(135deg, hsl(35 30% 95%) 0%, hsl(28 40% 92%) 100%);
+
+    /* Luxurious Shadows */
+    --shadow-sm: 0 1px 2px hsl(160 25% 22% / 0.05);
+    --shadow-md: 0 4px 12px hsl(160 25% 22% / 0.08);
+    --shadow-lg: 0 8px 30px hsl(160 25% 22% / 0.12);
+    --shadow-xl: 0 20px 50px hsl(160 25% 22% / 0.15);
+    --shadow-gold: 0 8px 30px hsl(38 75% 55% / 0.25);
+    --shadow-glow: 0 0 40px hsl(38 75% 55% / 0.3);
+
+    --radius: 0.75rem;
+
+    /* Sidebar */
+    --sidebar-background: 160 25% 22%;
+    --sidebar-foreground: 40 30% 98%;
+    --sidebar-primary: 38 75% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 160 25% 28%;
+    --sidebar-accent-foreground: 40 30% 98%;
+    --sidebar-border: 160 25% 28%;
+    --sidebar-ring: 38 75% 55%;
+  }
+
+  .dark {
+    --background: 160 20% 8%;
+    --foreground: 40 30% 95%;
+
+    --card: 160 20% 12%;
+    --card-foreground: 40 30% 95%;
+
+    --popover: 160 20% 12%;
+    --popover-foreground: 40 30% 95%;
+
+    --primary: 38 75% 55%;
+    --primary-foreground: 160 25% 10%;
+
+    --secondary: 160 20% 18%;
+    --secondary-foreground: 40 30% 95%;
+
+    --muted: 160 15% 20%;
+    --muted-foreground: 40 20% 65%;
+
+    --accent: 38 75% 55%;
+    --accent-foreground: 160 25% 10%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 160 15% 20%;
+    --input: 160 15% 20%;
+    --ring: 38 75% 55%;
+    
+    --sidebar-background: 160 20% 8%;
+    --sidebar-foreground: 40 30% 95%;
+    --sidebar-primary: 38 75% 55%;
+    --sidebar-primary-foreground: 160 25% 10%;
+    --sidebar-accent: 160 15% 15%;
+    --sidebar-accent-foreground: 40 30% 95%;
+    --sidebar-border: 160 15% 20%;
+    --sidebar-ring: 38 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-lato antialiased;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-lora tracking-tight;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Selection styling */
+  ::selection {
+    background: hsl(38 75% 55% / 0.3);
+    color: hsl(160 25% 18%);
+  }
+}
+
+@layer components {
+  /* Premium text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(160 25% 22%) 0%, hsl(38 75% 55%) 100%);
+  }
+
+  /* Gold accent text */
+  .text-gold {
+    color: hsl(38 75% 55%);
+  }
+
+  /* Decorative line */
+  .accent-line {
+    @apply h-1 w-16 bg-accent rounded-full;
+  }
+
+  /* Premium card hover effect */
+  .card-hover {
+    @apply transition-all duration-500 ease-out;
+  }
+  
+  .card-hover:hover {
+    @apply shadow-xl -translate-y-2;
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* Shimmer effect for loading states */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(35 25% 94%) 0%,
+      hsl(35 30% 98%) 50%,
+      hsl(35 25% 94%) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20;
+  }
+
+  /* Organic shape decoration */
+  .organic-shape {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Subtle texture overlay */
+  .texture-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+  }
+}
