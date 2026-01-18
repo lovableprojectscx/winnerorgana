@@ -30,6 +30,7 @@ import {
   Sun,
   ArrowRight
 } from "lucide-react";
+import heroBg from "@/assets/hero-products.jpg";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
@@ -195,7 +196,7 @@ const Catalogo = () => {
           <div className="absolute inset-0 bg-[#000000]/40 z-10" /> {/* Dark Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#1a472a] via-[#1a472a]/20 to-transparent z-10" /> {/* Gradient Blend */}
           <img
-            src="/src/assets/hero-products.jpg"
+            src={heroBg}
             alt="Background"
             className="w-full h-full object-cover"
           />
