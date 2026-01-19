@@ -28,6 +28,8 @@ const Checkout = () => {
   const [paymentProof, setPaymentProof] = useState<{ url: string; method: string } | null>(null);
   const [userId, setUserId] = useState<string>("");
   const [conversionRate, setConversionRate] = useState(10);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [userAddresses, setUserAddresses] = useState<any[]>([]);
 
   const urlAffiliateCode = searchParams.get("ref") || "";
 
@@ -53,30 +55,43 @@ const Checkout = () => {
       if (session?.user) {
         setUserId(session.user.id);
 
-        // Auto-fill data from last order if available
-        if (credits?.email) {
-          const { data: lastOrder } = await supabase
-            .from("orders")
-            .select("customer_dni, customer_phone, shipping_address, shipping_city")
-            .eq("customer_email", credits.email)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+        // Load user addresses
+        const { data: addresses } = await supabase
+          .from("user_addresses")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .order("is_default", { ascending: false });
 
-          if (lastOrder) {
-            setFormData(prev => ({
-              ...prev,
-              dni: lastOrder.customer_dni || "",
-              phone: lastOrder.customer_phone || "",
-              address: lastOrder.shipping_address || "",
-              city: lastOrder.shipping_city || "",
-            }));
+        if (addresses && addresses.length > 0) {
+          setUserAddresses(addresses);
+          // Auto-select default or first
+          const defaultAddr = addresses.find(a => a.is_default) || addresses[0];
+          handleAddressSelect(defaultAddr);
+        } else {
+          // Fallback to last order if no saved addresses (legacy behavior)
+          if (credits?.email) {
+            const { data: lastOrder } = await supabase
+              .from("orders")
+              .select("customer_dni, customer_phone, shipping_address, shipping_city")
+              .eq("customer_email", credits.email)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-            toast({
-              title: "Datos de envío cargados",
-              description: "Hemos completado el formulario con tu última dirección utilizada.",
-              duration: 3000,
-            });
+            if (lastOrder) {
+              setFormData(prev => ({
+                ...prev,
+                dni: lastOrder.customer_dni || "",
+                phone: lastOrder.customer_phone || "",
+                address: lastOrder.shipping_address || "",
+                city: lastOrder.shipping_city || "",
+              }));
+              toast({
+                title: "Datos de envío cargados",
+                description: "Se autocompletaron tus datos de la última compra.",
+                duration: 2000,
+              });
+            }
           }
         }
       }
@@ -143,6 +158,21 @@ const Checkout = () => {
     if (field === "affiliateCode") {
       validateAffiliateCode(value);
     }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleAddressSelect = (address: any) => {
+    setFormData(prev => ({
+      ...prev,
+      dni: address.dni || "",
+      phone: address.phone || "",
+      address: address.address || "",
+      city: address.city || "",
+    }));
+    toast({
+      title: "Dirección seleccionada",
+      description: `Usando: ${address.address}`,
+    });
   };
 
   const handleProofUploaded = (proofUrl: string, paymentMethod: string) => {
@@ -517,6 +547,32 @@ const Checkout = () => {
                       Comprando como: <span className="font-medium text-foreground">{userEmail}</span>
                     </p>
                   </div>
+
+                  {userAddresses.length > 0 && (
+                    <div className="mb-6">
+                      <Label className="block mb-2 text-sm font-medium">Mis Direcciones Guardadas</Label>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {userAddresses.map((addr) => (
+                          <div
+                            key={addr.id}
+                            onClick={() => handleAddressSelect(addr)}
+                            className={`cursor-pointer p-3 border rounded-lg transition-all hover:bg-muted/50 ${formData.address === addr.address ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-input'
+                              }`}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-bold text-sm">{addr.city}</span>
+                              {addr.is_default && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">Principal</span>}
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-1">{addr.address}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">O ingresa una nueva</span></div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="dni" className="text-sm">DNI *</Label>

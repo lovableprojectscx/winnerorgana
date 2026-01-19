@@ -8,7 +8,7 @@ import {
   Copy, Home, User as UserIcon, Users, LogOut, TrendingUp,
   DollarSign, Loader2, Award, Share2, ChevronRight, Wallet,
   CheckCircle, RefreshCw, Calendar, Sparkles,
-  ShoppingBag, Heart, Crown, Settings
+  ShoppingBag, Heart, Crown, Settings, MapPin
 } from "lucide-react";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useState, useEffect, useCallback } from "react";
@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { User, Session } from "@supabase/supabase-js";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
+import { AddressesSection } from "@/components/profile/AddressesSection";
 
 interface ReferralData {
   id: string;
@@ -583,8 +584,8 @@ const AreaAfiliado = () => {
                   <div className="text-right">
                     <p className="text-emerald-600 font-bold">+S/ {commission.amount.toFixed(2)}</p>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full border ${commission.status === 'paid'
-                        ? 'bg-green-50 text-green-700 border-green-200'
-                        : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : 'bg-yellow-50 text-yellow-700 border-yellow-200'
                       }`}>
                       {commission.status === "paid" ? "Pagado" : "Pendiente"}
                     </span>
@@ -699,14 +700,15 @@ const AreaAfiliado = () => {
               { id: 'mi-red', label: 'Mi Red', icon: Users, badge: referrals.length },
               { id: 'perfil', label: 'Mi Perfil', icon: Settings },
               { id: 'mis-compras', label: 'Mis Compras', icon: ShoppingBag, badge: orders.length },
+              { id: 'mis-direcciones', label: 'Mis Direcciones', icon: MapPin },
               { id: 'favoritos', label: 'Favoritos', icon: Heart, badge: favorites.size }
             ].map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
                 className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 font-medium ${activeSection === item.id
-                    ? 'bg-amber-100 text-amber-900 shadow-sm'
-                    : 'text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-sm'
+                  ? 'bg-amber-100 text-amber-900 shadow-sm'
+                  : 'text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-sm'
                   }`}
               >
                 <div className="flex items-center gap-3">
@@ -738,6 +740,11 @@ const AreaAfiliado = () => {
           <AnimatePresence mode="wait">
             {activeSection === "resumen" && renderResumen()}
             {activeSection === "perfil" && renderPerfil()}
+            {activeSection === "mis-direcciones" && (
+              <motion.div variants={containerVariants} initial="hidden" animate="visible">
+                <AddressesSection />
+              </motion.div>
+            )}
             {activeSection === "mi-red" && (
               <motion.div variants={containerVariants} initial="hidden" animate="visible">
                 <InfoCard className="p-6">

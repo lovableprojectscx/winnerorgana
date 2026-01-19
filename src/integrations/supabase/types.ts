@@ -580,6 +580,42 @@ export type Database = {
           },
         ]
       }
+      user_addresses: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          dni: string | null
+          id: string
+          is_default: boolean
+          phone: string | null
+          reference: string | null
+          user_id: string
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string
+          dni?: string | null
+          id?: string
+          is_default?: boolean
+          phone?: string | null
+          reference?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          dni?: string | null
+          id?: string
+          is_default?: boolean
+          phone?: string | null
+          reference?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_credits: {
         Row: {
           balance: number
