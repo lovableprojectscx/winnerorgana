@@ -85,6 +85,7 @@ const Catalogo = () => {
   const [addedToCart, setAddedToCart] = useState<Set<string>>(new Set());
   const [filterOpen, setFilterOpen] = useState(false); // Make sure this is used if we have the mobile sheet
   const { toggleFavorite, isFavorite } = useFavorites();
+  const [conversionRate, setConversionRate] = useState(10);
 
   // Sync URL params with state
   useEffect(() => {
@@ -97,6 +98,7 @@ const Catalogo = () => {
   useEffect(() => {
     fetchCategories();
     fetchProducts();
+    fetchSettings();
   }, []);
 
   const fetchCategories = async () => {
@@ -106,6 +108,22 @@ const Catalogo = () => {
       setCategories(data || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('business_settings')
+        .select('wp_conversion_rate')
+        .single();
+
+      if (error) throw error;
+      if (data?.wp_conversion_rate) {
+        setConversionRate(data.wp_conversion_rate);
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
     }
   };
 
@@ -426,10 +444,17 @@ const Catalogo = () => {
 
                         <div className="flex items-center justify-between mt-auto">
                           <div className="flex flex-col">
-                            <span className="text-[10px] uppercase tracking-widest text-[#1a472a]/60 font-bold">Precio</span>
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-lg md:text-2xl font-bold text-[#1a472a] font-serif">{product.price}</span>
-                              <span className="text-[10px] md:text-xs font-bold text-accent">WP</span>
+                            <span className="text-[10px] uppercase tracking-widest text-[#1a472a]/60 font-bold mb-1">Precio</span>
+                            <div className="flex flex-col">
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-xl md:text-2xl font-bold text-[#1a472a] font-serif leading-none">{product.price}</span>
+                                <span className="text-[10px] md:text-xs font-bold text-[#1a472a]/70 uppercase">WP</span>
+                              </div>
+                              <div className="flex items-center mt-1">
+                                <span className="text-xs md:text-sm font-medium text-emerald-700 bg-emerald-50/80 px-2 py-0.5 rounded-md">
+                                  S/ {(product.price / conversionRate).toFixed(2)}
+                                </span>
+                              </div>
                             </div>
                           </div>
 

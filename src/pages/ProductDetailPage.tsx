@@ -40,13 +40,31 @@ const ProductDetailPage = () => {
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [addedToCart, setAddedToCart] = useState(false);
+    const [conversionRate, setConversionRate] = useState(10);
     const { addItem } = useCart();
     const { toast } = useToast();
     const navigate = useNavigate();
 
     useEffect(() => {
         if (id) fetchProduct();
+        fetchSettings();
     }, [id]);
+
+    const fetchSettings = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('business_settings')
+                .select('wp_conversion_rate')
+                .single();
+
+            if (error) throw error;
+            if (data?.wp_conversion_rate) {
+                setConversionRate(data.wp_conversion_rate);
+            }
+        } catch (error) {
+            console.error("Error fetching settings:", error);
+        }
+    };
 
     const fetchProduct = async () => {
         try {
@@ -219,12 +237,19 @@ const ProductDetailPage = () => {
                             <div className="bg-white p-6 rounded-3xl shadow-lg border border-[#1a472a]/5 mb-10">
                                 <div className="flex justify-between items-end mb-6">
                                     <div>
-                                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-1">Precio Miembro</p>
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-4xl lg:text-5xl font-bold text-[#1a472a] font-serif">
-                                                {product.price.toLocaleString()}
-                                            </span>
-                                            <span className="text-lg font-bold text-[#1a472a]/60">WP</span>
+                                        <p className="text-xs text-[#1a472a]/70 uppercase tracking-widest font-bold mb-1.5">Precio Miembro</p>
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-4xl lg:text-5xl font-bold text-[#1a472a] font-serif leading-none">
+                                                    {product.price.toLocaleString()}
+                                                </span>
+                                                <span className="text-lg font-bold text-[#1a472a]/70 uppercase tracking-wide">WP</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <span className="inline-flex items-center justify-center text-sm font-medium text-emerald-700 bg-emerald-50/80 px-3 py-1 rounded-full border border-emerald-100/50">
+                                                    aprox. S/ {(product.price / conversionRate).toFixed(2)}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="text-right">

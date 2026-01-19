@@ -21,6 +21,7 @@ const ProductsSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [conversionRate, setConversionRate] = useState(10);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -46,7 +47,24 @@ const ProductsSection = () => {
 
   useEffect(() => {
     fetchPopularProducts();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('business_settings')
+        .select('wp_conversion_rate')
+        .single();
+
+      if (error) throw error;
+      if (data?.wp_conversion_rate) {
+        setConversionRate(data.wp_conversion_rate);
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    }
+  };
 
   const fetchPopularProducts = async () => {
     try {
@@ -278,9 +296,16 @@ const ProductsSection = () => {
                     </div>
 
                     {/* Price Tag */}
-                    <div className="flex flex-col items-end">
-                      <span className="text-xl font-bold text-[#1a472a] font-serif">{priceInWP}</span>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">WP</span>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-xl font-bold text-[#1a472a] font-serif leading-none">{priceInWP}</span>
+                        <span className="text-[10px] font-bold text-[#1a472a]/70 uppercase tracking-widest">WP</span>
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <span className="text-xs font-medium text-emerald-600/80 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                          S/ {(priceInWP / conversionRate).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 

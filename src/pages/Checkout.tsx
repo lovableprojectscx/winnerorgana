@@ -27,9 +27,10 @@ const Checkout = () => {
   const [paymentType, setPaymentType] = useState<PaymentType>("winner_points");
   const [paymentProof, setPaymentProof] = useState<{ url: string; method: string } | null>(null);
   const [userId, setUserId] = useState<string>("");
-  
+  const [conversionRate, setConversionRate] = useState(10);
+
   const urlAffiliateCode = searchParams.get("ref") || "";
-  
+
   const [formData, setFormData] = useState({
     dni: "",
     phone: "",
@@ -40,7 +41,7 @@ const Checkout = () => {
 
   // Los precios ya están en WinnerPoints directamente
   const totalInWP = getTotalPrice();
-  const totalInSoles = totalInWP / 10; // 10 WP = 1 Sol
+  const totalInSoles = totalInWP / conversionRate;
   const hasEnoughCredits = balance >= totalInWP;
 
   // Get user info from credits (contains email)
@@ -54,8 +55,25 @@ const Checkout = () => {
       }
     };
     getUser();
+    fetchSettings();
   }, []);
-  
+
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('business_settings')
+        .select('wp_conversion_rate')
+        .single();
+
+      if (error) throw error;
+      if (data?.wp_conversion_rate) {
+        setConversionRate(data.wp_conversion_rate);
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    }
+  };
+
   useEffect(() => {
     if (urlAffiliateCode) {
       validateAffiliateCode(urlAffiliateCode);
@@ -74,7 +92,7 @@ const Checkout = () => {
       setAffiliateInfo(null);
       return;
     }
-    
+
     try {
       const { data, error } = await supabase
         .from("affiliates")
@@ -94,7 +112,7 @@ const Checkout = () => {
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     if (field === "affiliateCode") {
       validateAffiliateCode(value);
     }
@@ -106,7 +124,7 @@ const Checkout = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isAuthenticated) {
       toast({
         title: "Inicia sesión",
@@ -151,7 +169,7 @@ const Checkout = () => {
     try {
       const orderNumber = `ORD-${Date.now()}`;
       const totalAmount = getTotalPrice();
-      
+
       // Verify stock availability first
       for (const item of items) {
         const { data: productData, error: productError } = await supabase
@@ -161,7 +179,7 @@ const Checkout = () => {
           .single();
 
         if (productError) throw productError;
-        
+
         if (productData.stock !== null && productData.stock < item.quantity) {
           throw new Error(`Stock insuficiente para "${productData.name}". Disponible: ${productData.stock}`);
         }
@@ -170,7 +188,7 @@ const Checkout = () => {
       // Create orders for each item
       let firstOrderId: string | null = null;
       const createdOrders: { orderId: string; productId: string; quantity: number }[] = [];
-      
+
       const orderStatus = paymentType === "winner_points" ? "Pagado con WP" : "Pendiente de Verificación";
       const paymentStatus = paymentType === "winner_points" ? "completed" : "pending_verification";
 
@@ -265,7 +283,7 @@ const Checkout = () => {
         });
 
         if (creditError) throw creditError;
-        
+
         const result = creditResult as { success: boolean; error?: string };
         if (!result.success) {
           throw new Error(result.error || "Error al procesar los créditos");
@@ -370,10 +388,10 @@ const Checkout = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-6 md:py-8">
         <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-6 md:mb-8">Finalizar Compra</h1>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           {/* Order Summary - Mobile First */}
           <div className="lg:hidden">
@@ -388,13 +406,15 @@ const Checkout = () => {
                       <p className="font-medium">{item.name}</p>
                       <p className="text-muted-foreground">x{item.quantity}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{(item.price * item.quantity).toLocaleString()} WP</p>
-                      <p className="text-xs text-muted-foreground">S/ {((item.price * item.quantity) / 10).toFixed(2)}</p>
+                    <div className="text-right flex flex-col items-end">
+                      <p className="font-semibold text-[#1a472a]">{(item.price * item.quantity).toLocaleString()} WP</p>
+                      <p className="text-xs font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                        S/ {((item.price * item.quantity) / conversionRate).toFixed(2)}
+                      </p>
                     </div>
                   </div>
                 ))}
-                
+
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total:</span>
@@ -552,7 +572,7 @@ const Checkout = () => {
                   </div>
 
                   <Button
-                    type="submit" 
+                    type="submit"
                     className="w-full h-11 md:h-12 text-sm md:text-base"
                     disabled={isProcessing || (paymentType === "dinero_real" && !paymentProof)}
                     variant={paymentType === "winner_points" ? "default" : "default"}
@@ -592,13 +612,15 @@ const Checkout = () => {
                       <p className="font-medium">{item.name}</p>
                       <p className="text-muted-foreground">x{item.quantity}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{(item.price * item.quantity).toLocaleString()} WP</p>
-                      <p className="text-xs text-muted-foreground">S/ {((item.price * item.quantity) / 10).toFixed(2)}</p>
+                    <div className="text-right flex flex-col items-end">
+                      <p className="font-semibold text-[#1a472a]">{(item.price * item.quantity).toLocaleString()} WP</p>
+                      <p className="text-xs font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                        S/ {((item.price * item.quantity) / conversionRate).toFixed(2)}
+                      </p>
                     </div>
                   </div>
                 ))}
-                
+
                 <div className="border-t pt-4">
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total:</span>
