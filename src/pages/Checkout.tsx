@@ -52,11 +52,38 @@ const Checkout = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUserId(session.user.id);
+
+        // Auto-fill data from last order if available
+        if (credits?.email) {
+          const { data: lastOrder } = await supabase
+            .from("orders")
+            .select("customer_dni, customer_phone, shipping_address, shipping_city")
+            .eq("customer_email", credits.email)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (lastOrder) {
+            setFormData(prev => ({
+              ...prev,
+              dni: lastOrder.customer_dni || "",
+              phone: lastOrder.customer_phone || "",
+              address: lastOrder.shipping_address || "",
+              city: lastOrder.shipping_city || "",
+            }));
+
+            toast({
+              title: "Datos de envío cargados",
+              description: "Hemos completado el formulario con tu última dirección utilizada.",
+              duration: 3000,
+            });
+          }
+        }
       }
     };
     getUser();
     fetchSettings();
-  }, []);
+  }, [credits?.email]);
 
   const fetchSettings = async () => {
     try {
