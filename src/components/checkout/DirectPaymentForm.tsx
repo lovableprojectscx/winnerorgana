@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Smartphone, 
-  Building2, 
-  Upload, 
-  CheckCircle, 
+import {
+  Smartphone,
+  Building2,
+  Upload,
+  CheckCircle,
   Loader2,
   Copy,
   ImageIcon,
@@ -18,11 +18,13 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface PaymentSettings {
-  yape_number: string | null;
-  plin_number: string | null;
-  bank_account: string | null;
-  bank_name: string | null;
+interface PaymentMethod {
+  id: string;
+  name: string;
+  account_number: string;
+  account_holder: string;
+  qr_code_url: string | null;
+  is_active: boolean;
 }
 
 interface DirectPaymentFormProps {
@@ -33,11 +35,11 @@ interface DirectPaymentFormProps {
 
 export function DirectPaymentForm({ totalSoles, onProofUploaded, userId }: DirectPaymentFormProps) {
   const { toast } = useToast();
-  const [settings, setSettings] = useState<PaymentSettings | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadedProof, setUploadedProof] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("yape");
+  const [activeTab, setActiveTab] = useState<string>("");
 
   useEffect(() => {
     loadPaymentSettings();
@@ -46,15 +48,24 @@ export function DirectPaymentForm({ totalSoles, onProofUploaded, userId }: Direc
   const loadPaymentSettings = async () => {
     try {
       const { data, error } = await supabase
-        .from("business_settings")
-        .select("yape_number, plin_number, bank_account, bank_name")
-        .limit(1)
-        .maybeSingle();
+        .from("payment_methods")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setSettings(data);
+
+      if (data && data.length > 0) {
+        setPaymentMethods(data);
+        setActiveTab(data[0].id);
+      }
     } catch (error) {
-      console.error("Error loading payment settings:", error);
+      console.error("Error loading payment methods:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los métodos de pago",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -109,7 +120,7 @@ export function DirectPaymentForm({ totalSoles, onProofUploaded, userId }: Direc
 
       setUploadedProof(publicUrl);
       onProofUploaded(publicUrl, activeTab);
-      
+
       toast({
         title: "Comprobante subido",
         description: "Tu comprobante de pago ha sido cargado correctamente",
@@ -155,96 +166,76 @@ export function DirectPaymentForm({ totalSoles, onProofUploaded, userId }: Direc
         </div>
 
         {/* Payment method tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="yape" className="flex items-center gap-1">
-              <Smartphone className="w-4 h-4" />
-              <span className="hidden sm:inline">Yape</span>
-            </TabsTrigger>
-            <TabsTrigger value="plin" className="flex items-center gap-1">
-              <Smartphone className="w-4 h-4" />
-              <span className="hidden sm:inline">Plin</span>
-            </TabsTrigger>
-            <TabsTrigger value="transfer" className="flex items-center gap-1">
-              <Building2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Banco</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="yape" className="mt-4 space-y-3">
-            <div className="p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Número Yape</p>
-                  <p className="text-lg font-mono font-bold text-purple-700 dark:text-purple-300">
-                    {settings?.yape_number || "No configurado"}
-                  </p>
-                </div>
-                {settings?.yape_number && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(settings.yape_number!, "Número")}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="plin" className="mt-4 space-y-3">
-            <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Número Plin</p>
-                  <p className="text-lg font-mono font-bold text-green-700 dark:text-green-300">
-                    {settings?.plin_number || "No configurado"}
-                  </p>
-                </div>
-                {settings?.plin_number && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(settings.plin_number!, "Número")}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="transfer" className="mt-4 space-y-3">
-            <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="space-y-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">Banco</p>
-                  <p className="font-bold text-blue-700 dark:text-blue-300">
-                    {settings?.bank_name || "No configurado"}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Número de Cuenta</p>
-                    <p className="font-mono font-bold text-blue-700 dark:text-blue-300">
-                      {settings?.bank_account || "No configurado"}
-                    </p>
-                  </div>
-                  {settings?.bank_account && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(settings.bank_account!, "Cuenta")}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
+        {/* Payment method tabs */}
+        {paymentMethods.length > 0 ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${paymentMethods.length}, 1fr)` }}>
+              {paymentMethods.map((method) => (
+                <TabsTrigger key={method.id} value={method.id} className="flex items-center gap-1">
+                  {method.name.toLowerCase().includes("banco") || method.name.toLowerCase().includes("bcp") || method.name.toLowerCase().includes("interbank") ? (
+                    <Building2 className="w-4 h-4" />
+                  ) : (
+                    <Smartphone className="w-4 h-4" />
                   )}
+                  <span className="hidden sm:inline">{method.name}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {paymentMethods.map((method) => (
+              <TabsContent key={method.id} value={method.id} className="mt-4 space-y-3">
+                <div className="p-4 bg-muted/30 rounded-lg border">
+
+                  {/* Account Info */}
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">{method.name}</p>
+                        <p className="text-lg font-mono font-bold text-primary">
+                          {method.account_number}
+                        </p>
+                        {method.account_holder && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Titular: {method.account_holder}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(method.account_number, "Número de cuenta")}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    {/* QR Code */}
+                    {method.qr_code_url && (
+                      <div className="pt-3 border-t">
+                        <p className="text-sm font-medium mb-2 text-center text-muted-foreground">Escanear QR</p>
+                        <div className="flex justify-center">
+                          <div className="bg-white p-2 rounded-lg border shadow-sm">
+                            <img
+                              src={method.qr_code_url}
+                              alt={`QR ${method.name}`}
+                              className="w-48 h-48 object-contain"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+              </TabsContent>
+            ))}
+          </Tabs>
+        ) : (
+          <div className="p-8 text-center border-2 border-dashed rounded-lg">
+            <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+            <p className="text-muted-foreground">No hay métodos de pago disponibles en este momento.</p>
+          </div>
+        )}
 
         {/* Upload proof section */}
         <div className="space-y-3 pt-2 border-t">
@@ -252,7 +243,7 @@ export function DirectPaymentForm({ totalSoles, onProofUploaded, userId }: Direc
             <Upload className="w-4 h-4" />
             Subir Comprobante de Pago *
           </Label>
-          
+
           {uploadedProof ? (
             <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-3">
