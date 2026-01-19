@@ -136,28 +136,57 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("business_settings")
-        .update({
-          business_name: settings.business_name,
-          logo_url: settings.logo_url,
-          contact_email: settings.contact_email,
-          contact_phone: settings.contact_phone,
-          whatsapp_number: settings.whatsapp_number,
-          address: settings.address,
-          commission_level_1: settings.commission_level_1,
-          commission_level_2: settings.commission_level_2,
-          commission_level_3: settings.commission_level_3,
-          commission_level_4: settings.commission_level_4,
-          commission_level_5: settings.commission_level_5,
-          commission_level_6: settings.commission_level_6,
-          commission_level_7: settings.commission_level_7,
-          notify_new_orders: settings.notify_new_orders,
-          notify_new_affiliates: settings.notify_new_affiliates,
-        })
-        .eq("id", settings.id);
+      if (!settings.id) {
+        // Insert new settings
+        const { data, error } = await supabase
+          .from("business_settings")
+          .insert([{
+            business_name: settings.business_name,
+            logo_url: settings.logo_url,
+            contact_email: settings.contact_email,
+            contact_phone: settings.contact_phone,
+            whatsapp_number: settings.whatsapp_number,
+            address: settings.address,
+            commission_level_1: settings.commission_level_1,
+            commission_level_2: settings.commission_level_2,
+            commission_level_3: settings.commission_level_3,
+            commission_level_4: settings.commission_level_4,
+            commission_level_5: settings.commission_level_5,
+            commission_level_6: settings.commission_level_6,
+            commission_level_7: settings.commission_level_7,
+            notify_new_orders: settings.notify_new_orders,
+            notify_new_affiliates: settings.notify_new_affiliates,
+          }])
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
+        if (data) setSettings({ ...settings, id: data.id });
+      } else {
+        // Update existing settings
+        const { error } = await supabase
+          .from("business_settings")
+          .update({
+            business_name: settings.business_name,
+            logo_url: settings.logo_url,
+            contact_email: settings.contact_email,
+            contact_phone: settings.contact_phone,
+            whatsapp_number: settings.whatsapp_number,
+            address: settings.address,
+            commission_level_1: settings.commission_level_1,
+            commission_level_2: settings.commission_level_2,
+            commission_level_3: settings.commission_level_3,
+            commission_level_4: settings.commission_level_4,
+            commission_level_5: settings.commission_level_5,
+            commission_level_6: settings.commission_level_6,
+            commission_level_7: settings.commission_level_7,
+            notify_new_orders: settings.notify_new_orders,
+            notify_new_affiliates: settings.notify_new_affiliates,
+          })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      }
 
       toast({
         title: "Configuración guardada",

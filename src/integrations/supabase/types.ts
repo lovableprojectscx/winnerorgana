@@ -419,6 +419,36 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          account_holder: string
+          account_number: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          qr_code_url: string | null
+        }
+        Insert: {
+          account_holder: string
+          account_number: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          qr_code_url?: string | null
+        }
+        Update: {
+          account_holder?: string
+          account_number?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          qr_code_url?: string | null
+        }
+        Relationships: []
+      }
       payment_proofs: {
         Row: {
           admin_notes: string | null
