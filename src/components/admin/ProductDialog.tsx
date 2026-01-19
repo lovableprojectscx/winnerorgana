@@ -43,8 +43,10 @@ export const ProductDialog = ({ open, onOpenChange, product, onSuccess }: Produc
   });
 
   useEffect(() => {
-    loadCategories();
-  }, []);
+    if (open) {
+      loadCategories();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (product) {
@@ -375,8 +377,8 @@ export const ProductDialog = ({ open, onOpenChange, product, onSuccess }: Produc
                   >
                     <Star
                       className={`w-6 h-6 transition-colors ${star <= parseInt(formData.rating)
-                          ? 'text-accent fill-accent'
-                          : 'text-muted-foreground/30'
+                        ? 'text-accent fill-accent'
+                        : 'text-muted-foreground/30'
                         }`}
                     />
                   </button>

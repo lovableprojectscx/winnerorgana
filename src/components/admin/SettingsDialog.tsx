@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,18 +12,41 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Building2, Percent, Bell } from "lucide-react";
+import { Loader2, Building2, Percent, Bell, CreditCard, Plus, Trash2, Upload, QrCode } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+interface PaymentMethod {
+  id: string;
+  name: string;
+  account_number: string;
+  account_holder: string;
+  qr_code_url: string | null;
+  is_active: boolean;
+}
+
 export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  
+
+  // Payment Methods State
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [loadingMethods, setLoadingMethods] = useState(false);
+  const [newMethod, setNewMethod] = useState({
+    name: "",
+    account_number: "",
+    account_holder: "",
+    qr_code_url: ""
+  });
+  const [isUploadingQr, setIsUploadingQr] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [settings, setSettings] = useState({
     id: "",
     business_name: "Winner Organa",
@@ -46,6 +69,7 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   useEffect(() => {
     if (open) {
       loadSettings();
+      loadPaymentMethods();
     }
   }, [open]);
 
@@ -59,7 +83,7 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
         .maybeSingle();
 
       if (error) throw error;
-      
+
       if (data) {
         setSettings({
           id: data.id,
@@ -89,6 +113,23 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPaymentMethods = async () => {
+    setLoadingMethods(true);
+    try {
+      const { data, error } = await supabase
+        .from('payment_methods')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setPaymentMethods(data || []);
+    } catch (error) {
+      console.error("Error loading payment methods:", error);
+    } finally {
+      setLoadingMethods(false);
     }
   };
 
@@ -135,6 +176,129 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
     }
   };
 
+  const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Solo se permiten archivos de imagen"
+      });
+      return;
+    }
+
+    setIsUploadingQr(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('payment-qrs')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('payment-qrs')
+        .getPublicUrl(fileName);
+
+      setNewMethod({ ...newMethod, qr_code_url: publicUrl });
+      toast({ title: "QR subido correctamente" });
+    } catch (error) {
+      console.error("Error uploading QR:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo subir la imagen QR"
+      });
+    } finally {
+      setIsUploadingQr(false);
+    }
+  };
+
+  const verifyPaymentMethodsTable = async () => {
+    try {
+      // Intentamos insertar un registro dummy para verificar si la tabla existe o disparar un error especifico
+      // O simplemente leer. Si da error de "relation does not exist", sabemos que tenemos que crearla.
+      // Pero como no soy ADMIN de SQL desde aqui, asumo que ya ejecutamos el script SQL anteriormente.
+      // Esta funcion es solo un placeholder mental.
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  const handleAddPaymentMethod = async () => {
+    if (!newMethod.name || !newMethod.account_number) {
+      toast({
+        variant: "destructive",
+        title: "Faltan datos",
+        description: "El nombre y número/celular son obligatorios"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('payment_methods')
+        .insert([{
+          name: newMethod.name,
+          account_number: newMethod.account_number,
+          account_holder: newMethod.account_holder,
+          qr_code_url: newMethod.qr_code_url,
+          is_active: true
+        }]);
+
+      if (error) throw error;
+
+      toast({ title: "Método de pago agregado" });
+      setNewMethod({ name: "", account_number: "", account_holder: "", qr_code_url: "" });
+      loadPaymentMethods();
+    } catch (error) {
+      console.error("Error adding payment method:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo agregar el método de pago"
+      });
+    }
+  };
+
+  const handleDeleteMethod = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('payment_methods')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      loadPaymentMethods();
+      toast({ title: "Método eliminado" });
+    } catch (error) {
+      console.error("Error deleting method:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo eliminar el método"
+      });
+    }
+  };
+
+  const handleToggleActive = async (id: string, currentState: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('payment_methods')
+        .update({ is_active: !currentState })
+        .eq('id', id);
+
+      if (error) throw error;
+      loadPaymentMethods();
+    } catch (error) {
+      console.error("Error toggling status:", error);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -150,7 +314,7 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
           </div>
         ) : (
           <Tabs defaultValue="business" className="mt-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="business" className="flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
                 Negocio
@@ -158,6 +322,10 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
               <TabsTrigger value="commissions" className="flex items-center gap-2">
                 <Percent className="w-4 h-4" />
                 Comisiones
+              </TabsTrigger>
+              <TabsTrigger value="payment" className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                Pagos
               </TabsTrigger>
               <TabsTrigger value="notifications" className="flex items-center gap-2">
                 <Bell className="w-4 h-4" />
@@ -262,8 +430,8 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                   { key: 'commission_level_6', level: 6, name: 'Consolidador', desc: 'Ventas del nivel 6', color: 'border-l-cyan-500' },
                   { key: 'commission_level_7', level: 7, name: 'Embajador', desc: 'Ventas del nivel 7', color: 'border-l-amber-500' },
                 ].map((item) => (
-                  <div 
-                    key={item.key} 
+                  <div
+                    key={item.key}
                     className={`flex items-center justify-between p-3 border rounded-lg border-l-4 ${item.color} bg-card hover:bg-muted/50 transition-colors`}
                   >
                     <div className="flex-1 min-w-0">
@@ -311,6 +479,119 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                       Number(settings.commission_level_7)
                     ).toFixed(0)}%
                   </span>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="payment" className="space-y-6 mt-4">
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg bg-muted/20">
+                  <h3 className="font-medium mb-3 flex items-center gap-2">
+                    <Plus className="w-4 h-4" /> Agregar Nuevo Método
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <Input
+                      placeholder="Nombre (ej: Yape, BCP)"
+                      value={newMethod.name}
+                      onChange={(e) => setNewMethod({ ...newMethod, name: e.target.value })}
+                    />
+                    <Input
+                      placeholder="Número / Cuenta"
+                      value={newMethod.account_number}
+                      onChange={(e) => setNewMethod({ ...newMethod, account_number: e.target.value })}
+                    />
+                    <Input
+                      placeholder="Titular de la cuenta"
+                      value={newMethod.account_holder}
+                      onChange={(e) => setNewMethod({ ...newMethod, account_holder: e.target.value })}
+                    />
+                    <div className="flex gap-2">
+                      {newMethod.qr_code_url ? (
+                        <div className="flex items-center gap-2 flex-1 p-2 border rounded text-xs truncate bg-green-50">
+                          <QrCode className="w-4 h-4 text-green-600" />
+                          <span className="truncate">QR subido</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 ml-auto"
+                            onClick={() => setNewMethod({ ...newMethod, qr_code_url: "" })}
+                          >
+                            <Trash2 className="w-3 h-3 text-red-500" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex-1">
+                          <Input
+                            type="file"
+                            className="hidden"
+                            ref={fileInputRef}
+                            accept="image/*"
+                            onChange={handleQrUpload}
+                          />
+                          <Button
+                            variant="outline"
+                            className="w-full dashed border-2 text-muted-foreground"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploadingQr}
+                          >
+                            {isUploadingQr ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                            Subir QR
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Button onClick={handleAddPaymentMethod} className="w-full" disabled={!newMethod.name || !newMethod.account_number}>
+                    Agregar Método de Pago
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="font-medium">Métodos Activos</h3>
+                  {loadingMethods ? (
+                    <div className="flex justify-center py-4"><Loader2 className="animate-spin" /></div>
+                  ) : paymentMethods.length === 0 ? (
+                    <p className="text-center text-sm text-muted-foreground py-4">No hay métodos de pago configurados.</p>
+                  ) : (
+                    paymentMethods.map(method => (
+                      <Card key={method.id} className="overflow-hidden">
+                        <CardContent className="p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {method.qr_code_url ? (
+                              <div className="h-10 w-10 rounded-md bg-muted overflow-hidden">
+                                <img src={method.qr_code_url} alt="QR" className="h-full w-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                                <CreditCard className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-medium text-sm flex items-center gap-2">
+                                {method.name}
+                                {!method.is_active && <Badge variant="secondary" className="text-[10px] h-4">Inactivo</Badge>}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{method.account_number} • {method.account_holder}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={method.is_active}
+                              onCheckedChange={() => handleToggleActive(method.id, method.is_active)}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeleteMethod(method.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </div>
             </TabsContent>
