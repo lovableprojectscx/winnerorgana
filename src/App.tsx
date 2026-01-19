@@ -40,6 +40,7 @@ const App = () => (
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/mi-billetera" element={<MiBilletera />} />
+          <Route path="/admin" element={<Navigate to="/admin-login" replace />} />
 
           {/* Legal docs are shown in an in-page panel from the footer */}
           <Route path="/terminos-condiciones" element={<Navigate to="/" replace />} />
